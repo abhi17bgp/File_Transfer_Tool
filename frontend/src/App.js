@@ -58,13 +58,11 @@ function App() {
         if (ipResponse.ok) {
           const data = await ipResponse.json();
           
-          // Generate frontend URL using the backend's IP
-          let frontendUrl;
-          if (data.environment === 'production') {
-            // In production, use current origin
-            frontendUrl = window.location.origin;
-          } else {
-            // In development, use the backend's IP with frontend port
+          // Generate frontend URL - always use current origin for deployed frontend
+          let frontendUrl = window.location.origin;
+          
+          // If we're accessing from localhost, use the backend's IP for local development
+          if (window.location.hostname === 'localhost' && data.environment === 'development') {
             frontendUrl = `http://${data.ip}:3000`;
           }
           
@@ -90,13 +88,11 @@ function App() {
       if (response.ok) {
         const data = await response.json();
         
-        // Generate frontend URL using the backend's IP
-        let frontendUrl;
-        if (data.environment === 'production') {
-          // In production, use current origin
-          frontendUrl = window.location.origin;
-        } else {
-          // In development, use the backend's IP with frontend port
+        // Generate frontend URL - always use current origin for deployed frontend
+        let frontendUrl = window.location.origin;
+        
+        // If we're accessing from localhost, use the backend's IP for local development
+        if (window.location.hostname === 'localhost' && data.environment === 'development') {
           frontendUrl = `http://${data.ip}:3000`;
         }
         
