@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Trash2, File, Image, Video, Music, Archive, FileText } from 'lucide-react';
 import { Button } from './ui/button';
-import { Card, CardContent } from './components/ui/card';
+import { Card, CardContent } from './ui/card';
 import { useToast } from '../hooks/use-toast';
 
 const FileList = ({ files, onDownload, onDelete, isLoading }) => {

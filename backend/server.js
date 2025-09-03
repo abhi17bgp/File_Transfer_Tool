@@ -12,8 +12,18 @@ const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB (optional for development)
+let dbConnected = false;
+connectDB().then(conn => {
+  if (conn) {
+    dbConnected = true;
+    console.log('✅ Database connection established');
+  } else {
+    console.log('⚠️  Running without database connection');
+  }
+}).catch(err => {
+  console.log('⚠️  Database connection failed, running in fallback mode');
+});
 
 // Middleware
 app.use(cors());
@@ -94,27 +104,30 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       });
     }
 
-    // Create file record in MongoDB
-    const fileRecord = new File({
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
-      filePath: req.file.path
-    });
+    // Create file record in MongoDB (if connected)
+    let fileRecord = null;
+    if (dbConnected) {
+      fileRecord = new File({
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        filePath: req.file.path
+      });
 
-    await fileRecord.save();
+      await fileRecord.save();
+    }
 
     res.json({
       success: true,
       message: 'File uploaded successfully',
       file: {
-        id: fileRecord._id,
-        filename: fileRecord.filename,
-        originalName: fileRecord.originalname,
-        size: fileRecord.size,
-        mimetype: fileRecord.mimetype,
-        uploadDate: fileRecord.uploadDate
+        id: dbConnected ? fileRecord._id : req.file.filename,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        uploadDate: dbConnected ? fileRecord.uploadDate : new Date()
       }
     });
   } catch (error) {
@@ -135,6 +148,26 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 // Get list of uploaded files
 app.get('/api/files', async (req, res) => {
   try {
+    if (!dbConnected) {
+      // Fallback: read files from uploads directory
+      const files = fs.readdirSync(uploadsDir).map(filename => {
+        const filePath = path.join(uploadsDir, filename);
+        const stats = fs.statSync(filePath);
+        return {
+          id: filename,
+          filename: filename,
+          originalName: filename,
+          size: stats.size,
+          uploadDate: stats.birthtime,
+          mimetype: 'application/octet-stream',
+          downloadUrl: `/api/download/${filename}`
+        };
+      }).sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
+
+      res.json({ success: true, files });
+      return;
+    }
+
     const files = await File.find({})
       .sort({ uploadDate: -1 })
       .select('filename originalName size uploadDate mimetype');
@@ -164,31 +197,35 @@ app.get('/api/files', async (req, res) => {
 app.get('/api/download/:filename', async (req, res) => {
   try {
     const filename = req.params.filename;
-    
-    // Find file in database
-    const fileRecord = await File.findOne({ filename });
-    if (!fileRecord) {
-      return res.status(404).json({
-        success: false,
-        error: 'File not found'
-      });
-    }
-
     const filePath = path.join(uploadsDir, filename);
 
     // Check if file exists on disk
     if (!fs.existsSync(filePath)) {
-      // Remove from database if file doesn't exist on disk
-      await File.findByIdAndDelete(fileRecord._id);
       return res.status(404).json({
         success: false,
         error: 'File not found on disk'
       });
     }
 
+    let originalName = filename;
+    let mimetype = 'application/octet-stream';
+
+    // If database is connected, try to get file metadata
+    if (dbConnected) {
+      try {
+        const fileRecord = await File.findOne({ filename });
+        if (fileRecord) {
+          originalName = fileRecord.originalName;
+          mimetype = fileRecord.mimetype;
+        }
+      } catch (dbError) {
+        console.log('Database lookup failed, using fallback metadata');
+      }
+    }
+
     // Set appropriate headers for file download
-    res.setHeader('Content-Disposition', `attachment; filename="${fileRecord.originalName}"`);
-    res.setHeader('Content-Type', fileRecord.mimetype || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${originalName}"`);
+    res.setHeader('Content-Type', mimetype);
 
     // Stream the file
     const fileStream = fs.createReadStream(filePath);
@@ -214,25 +251,41 @@ app.get('/api/download/:filename', async (req, res) => {
 app.delete('/api/files/:id', async (req, res) => {
   try {
     const fileId = req.params.id;
-    
-    // Find file in database
-    const fileRecord = await File.findById(fileId);
-    if (!fileRecord) {
+    let filename = fileId;
+    let filePath = path.join(uploadsDir, fileId);
+
+    // If database is connected, try to get file info
+    if (dbConnected) {
+      try {
+        const fileRecord = await File.findById(fileId);
+        if (fileRecord) {
+          filename = fileRecord.filename;
+          filePath = path.join(uploadsDir, fileRecord.filename);
+        }
+      } catch (dbError) {
+        console.log('Database lookup failed, using ID as filename');
+      }
+    }
+
+    // Check if file exists on disk
+    if (!fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
-        error: 'File not found'
+        error: 'File not found on disk'
       });
     }
 
-    const filePath = path.join(uploadsDir, fileRecord.filename);
-
     // Delete file from disk
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    fs.unlinkSync(filePath);
 
-    // Delete from database
-    await File.findByIdAndDelete(fileId);
+    // Delete from database if connected
+    if (dbConnected) {
+      try {
+        await File.findByIdAndDelete(fileId);
+      } catch (dbError) {
+        console.log('Database delete failed, but file removed from disk');
+      }
+    }
 
     res.json({
       success: true,
@@ -253,7 +306,7 @@ app.get('/api/health', (req, res) => {
     success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    mongodb: dbConnected ? 'connected' : 'disconnected'
   });
 });
 
@@ -263,7 +316,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📱 Local IP: http://${getLocalIP()}:${PORT}`);
   console.log(`🌐 Frontend accessible from other devices: http://${getLocalIP()}:3000`);
   console.log(`🔌 Backend API accessible from other devices: http://${getLocalIP()}:${PORT}`);
-  console.log(`🗄️  MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting...'}`);
+  console.log(`🗄️  MongoDB: ${dbConnected ? 'Connected' : 'Not Connected (Running in Fallback Mode)'}`);
 });
 
 module.exports = app;

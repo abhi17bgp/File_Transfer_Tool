@@ -1,24 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import QRCodeLib from 'qrcode';
+import React from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
 
 const QRCode = ({ url, size = 200 }) => {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (url && canvasRef.current) {
-      QRCodeLib.toCanvas(canvasRef.current, url, {
-        width: size,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      }).catch(err => {
-        console.error('Error generating QR code:', err);
-      });
-    }
-  }, [url, size]);
 
   return (
     <motion.div
@@ -28,7 +12,7 @@ const QRCode = ({ url, size = 200 }) => {
       className="flex flex-col items-center space-y-4"
     >
       <div className="p-4 bg-white rounded-lg shadow-lg">
-        <canvas ref={canvasRef} />
+        <QRCodeSVG value={url} size={size} />
       </div>
       <p className="text-sm text-muted-foreground text-center">
         Scan this QR code with your laptop to connect
