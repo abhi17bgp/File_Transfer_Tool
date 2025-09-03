@@ -26,7 +26,11 @@ connectDB().then(conn => {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
 app.use(express.static('public'));
 
@@ -72,24 +76,34 @@ function getLocalIP() {
 
 // Routes
 
-// Get server IP address
+// Get server info (no frontend URL needed)
 app.get('/api/ip', (req, res) => {
   try {
-    const ip = getLocalIP();
-    const port = PORT;
-    // Use frontend port (3000) for the URL since that's what users should access
-    const serverUrl = `http://${ip}:3000`;
-    
-    res.json({
-      success: true,
-      ip: ip,
-      port: port,
-      url: serverUrl
-    });
+    // Check if we're in production (deployed)
+    if (process.env.NODE_ENV === 'production') {
+      res.json({
+        success: true,
+        environment: 'production',
+        message: 'Server is deployed and running'
+      });
+    } else {
+      // Local development - return local IP info
+      const ip = getLocalIP();
+      console.log(ip);
+      const port = PORT;
+      
+      res.json({
+        success: true,
+        ip: ip,
+        port: port,
+        environment: 'development',
+        message: 'Server is running locally'
+      });
+    }
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: 'Failed to get IP address'
+      error: 'Failed to get server info'
     });
   }
 });

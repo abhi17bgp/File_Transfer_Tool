@@ -57,7 +57,24 @@ function App() {
         const ipResponse = await fetch(`${API_BASE}/api/ip`);
         if (ipResponse.ok) {
           const data = await ipResponse.json();
-          setServerInfo(data);
+          
+          // Generate frontend URL using the backend's IP
+          let frontendUrl;
+          if (data.environment === 'production') {
+            // In production, use current origin
+            frontendUrl = window.location.origin;
+          } else {
+            // In development, use the backend's IP with frontend port
+            frontendUrl = `http://${data.ip}:3000`;
+          }
+          
+          // Add the frontend URL to the server info
+          const serverInfoWithUrl = {
+            ...data,
+            url: frontendUrl
+          };
+          
+          setServerInfo(serverInfoWithUrl);
           setIsServerRunning(true);
         }
       }
@@ -72,7 +89,24 @@ function App() {
       const response = await fetch(`${API_BASE}/api/ip`);
       if (response.ok) {
         const data = await response.json();
-        setServerInfo(data);
+        
+        // Generate frontend URL using the backend's IP
+        let frontendUrl;
+        if (data.environment === 'production') {
+          // In production, use current origin
+          frontendUrl = window.location.origin;
+        } else {
+          // In development, use the backend's IP with frontend port
+          frontendUrl = `http://${data.ip}:3000`;
+        }
+        
+        // Add the frontend URL to the server info
+        const serverInfoWithUrl = {
+          ...data,
+          url: frontendUrl
+        };
+        
+        setServerInfo(serverInfoWithUrl);
         setIsServerRunning(true);
         toast({
           title: "Server Started",
