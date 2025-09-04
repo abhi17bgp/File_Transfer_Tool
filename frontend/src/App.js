@@ -458,6 +458,8 @@ function App() {
     try {
       // Use the secure download URL with token
       const downloadUrl = file.downloadUrl || `${API_BASE}/api/download/${file.filename}?token=${file.downloadToken}`;
+      console.log('Download URL:', downloadUrl);
+      console.log('File object:', file);
       const response = await fetch(downloadUrl);
       
       if (response.ok) {

@@ -60,8 +60,18 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
 
   // Handle image preview
   const handlePreview = (file) => {
+    console.log('Preview clicked for file:', file);
+    console.log('File mimetype:', file.mimetype);
+    console.log('Is image file:', isImageFile(file.mimetype));
     if (isImageFile(file.mimetype)) {
       setPreviewImage(file);
+    } else {
+      toast({
+        title: "Preview Not Available",
+        description: "This file type cannot be previewed",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   };
 
@@ -289,10 +299,11 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
             {/* Image */}
             <div className="p-4">
               <img
-                src={`${window.location.origin.includes('localhost') ? 'http://localhost:5000' : 'https://file-transfer-tool-2.onrender.com'}/api/preview/${previewImage.filename}`}
+                src={`https://file-transfer-tool-2.onrender.com/api/preview/${previewImage.filename}`}
                 alt={previewImage.originalName}
                 className="max-w-full max-h-96 object-contain mx-auto rounded-lg"
                 onError={(e) => {
+                  console.error('Image preview failed:', e);
                   e.target.style.display = 'none';
                   e.target.nextSibling.style.display = 'block';
                 }}
