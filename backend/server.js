@@ -974,11 +974,15 @@ app.delete('/api/files/:id', validateSession, async (req, res) => {
         await File.findByIdAndDelete(fileId);
         console.log('File deleted from database successfully');
         
-        // Update session file count and size
-        await Session.findByIdAndUpdate(req.session._id, {
-          $inc: { fileCount: -1, totalSize: -fileRecord.size }
-        });
-        console.log('Session stats updated');
+        // Update session file count and size (only if session has _id)
+        if (req.session._id) {
+          await Session.findByIdAndUpdate(req.session._id, {
+            $inc: { fileCount: -1, totalSize: -fileRecord.size }
+          });
+          console.log('Session stats updated');
+        } else {
+          console.log('Session has no _id, skipping session stats update');
+        }
       } catch (dbError) {
         console.log('Database delete failed:', dbError);
         // File is already deleted from disk, so we continue
