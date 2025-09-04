@@ -439,6 +439,8 @@ app.get('/api/ip', (req, res) => {
     if (process.env.NODE_ENV === 'production') {
       res.json({
         success: true,
+        ip: 'file-transfer-tool-2.onrender.com',
+        port: 443,
         environment: 'production',
         message: 'Server is deployed and running'
       });

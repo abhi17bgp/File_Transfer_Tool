@@ -115,11 +115,14 @@ function App() {
           // Generate frontend URL - use deployed backend URL for production
           let frontendUrl;
           
-          if (window.location.hostname === 'localhost' && data.environment === 'development') {
+          if (data.environment === 'production') {
+            // Production - use deployed backend URL
+            frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+          } else if (window.location.hostname === 'localhost' && data.environment === 'development') {
             // Local development - use backend's IP
             frontendUrl = `http://${data.ip}:3000`;
           } else {
-            // Production - use deployed backend URL
+            // Fallback - use deployed backend URL
             frontendUrl = 'https://file-transfer-tool-2.onrender.com';
           }
           
@@ -199,11 +202,14 @@ function App() {
       // Generate frontend URL - use deployed backend URL for production
       let frontendUrl;
       
-      if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
+      if (serverData.environment === 'production') {
+        // Production - use deployed backend URL
+        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+      } else if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
         // Local development - use backend's IP
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
-        // Production - use deployed backend URL
+        // Fallback - use deployed backend URL
         frontendUrl = 'https://file-transfer-tool-2.onrender.com';
       }
       
@@ -284,11 +290,14 @@ function App() {
       // Generate frontend URL - use deployed backend URL for production
       let frontendUrl;
       
-      if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
+      if (serverData.environment === 'production') {
+        // Production - use deployed backend URL
+        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+      } else if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
         // Local development - use backend's IP
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
-        // Production - use deployed backend URL
+        // Fallback - use deployed backend URL
         frontendUrl = 'https://file-transfer-tool-2.onrender.com';
       }
       
