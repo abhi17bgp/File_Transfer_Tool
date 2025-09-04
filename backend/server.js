@@ -431,6 +431,17 @@ app.post('/api/session/create', async (req, res) => {
   }
 });
 
+// Test endpoint to check deployment
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: 'Deployment test - updated code is working',
+    timestamp: new Date().toISOString(),
+    nodeEnv: process.env.NODE_ENV,
+    render: process.env.RENDER,
+    host: req.get('host')
+  });
+});
+
 // Get server info (no frontend URL needed)
 app.get('/api/ip', (req, res) => {
   try {
@@ -440,9 +451,11 @@ app.get('/api/ip', (req, res) => {
     console.log('Host:', req.get('host'));
     
     // Check if we're in production (deployed) - check multiple indicators
+    const host = req.get('host') || '';
     const isProduction = process.env.NODE_ENV === 'production' || 
                         process.env.RENDER === 'true' || 
-                        req.get('host')?.includes('onrender.com');
+                        host.includes('onrender.com') ||
+                        host.includes('file-transfer-tool-2');
     
     console.log('Is Production:', isProduction);
     
