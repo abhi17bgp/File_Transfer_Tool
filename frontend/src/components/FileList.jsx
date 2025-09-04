@@ -7,6 +7,18 @@ import { useToast } from '../hooks/use-toast';
 
 const FileList = ({ files, onDownload, onDelete, isLoading }) => {
   const { toast } = useToast();
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  // Check if mobile
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Get file icon based on mimetype
   const getFileIcon = (mimetype) => {
@@ -36,15 +48,13 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
   const handleDelete = async (fileId, filename) => {
     try {
       await onDelete(fileId);
-      toast({
-        title: "File Deleted",
-        description: `${filename} has been deleted successfully`,
-      });
+      // Success toast is now handled in App.js
     } catch (error) {
       toast({
-        title: "Delete Failed",
-        description: "Failed to delete file. Please try again.",
+        title: "❌ Delete Failed",
+        description: `Failed to delete ${filename}. Please try again.`,
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -84,7 +94,7 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
           <span className="text-sm text-muted-foreground">{files.length} file(s)</span>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3">
           <AnimatePresence>
             {files.map((file, index) => (
               <motion.div
@@ -93,50 +103,104 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative"
+                className="group"
               >
                 <Card className="hover:shadow-md transition-shadow duration-200">
                   <CardContent className="p-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                          {getFileIcon(file.mimetype)}
+                    {isMobile ? (
+                      // Mobile Layout - Stacked
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                              {getFileIcon(file.mimetype)}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={file.originalName}>
+                              {file.originalName}
+                            </p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className="text-xs text-muted-foreground bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                {formatFileSize(file.size)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(file.uploadDate)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDownload(file.filename)}
+                            className="flex-1"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(file.id, file.originalName)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={file.originalName}>
-                          {file.originalName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(file.size)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(file.uploadDate)}
-                        </p>
+                    ) : (
+                      // Desktop Layout - Horizontal
+                      <div className="flex items-center space-x-4">
+                        {/* File Icon */}
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                            {getFileIcon(file.mimetype)}
+                          </div>
+                        </div>
+                        
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate pr-2" title={file.originalName}>
+                              {file.originalName}
+                            </p>
+                            <div className="flex items-center space-x-2 flex-shrink-0">
+                              <span className="text-xs text-muted-foreground bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                {formatFileSize(file.size)}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDate(file.uploadDate)}
+                          </p>
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDownload(file.filename)}
+                            className="flex items-center"
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            <span className="hidden lg:inline">Download</span>
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(file.id, file.originalName)}
+                            className="flex items-center"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="hidden lg:inline ml-1">Delete</span>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex space-x-2 mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onDownload(file.filename)}
-                        className="flex-1"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(file.id, file.originalName)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>

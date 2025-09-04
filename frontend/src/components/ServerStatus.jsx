@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import QRCode from './QRCode';
 
-const ServerStatus = ({ serverInfo, isServerRunning, onCopyLink, copied }) => {
+const ServerStatus = ({ serverInfo, sessionInfo, isServerRunning, onCopyLink, copied }) => {
   if (!isServerRunning) {
     return (
       <Card className="w-full">
@@ -61,6 +61,22 @@ const ServerStatus = ({ serverInfo, isServerRunning, onCopyLink, copied }) => {
                 <span className="text-sm font-medium">URL:</span>
                 <span className="font-mono text-sm break-all">{serverInfo.url}</span>
               </div>
+              {sessionInfo && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Session ID:</span>
+                    <span className="font-mono text-sm">{sessionInfo.sessionId}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">PIN:</span>
+                    <span className="font-mono text-sm font-bold text-green-600">{sessionInfo.pin}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Expires:</span>
+                    <span className="font-mono text-sm">{new Date(sessionInfo.expiresAt).toLocaleString()}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -105,7 +121,10 @@ const ServerStatus = ({ serverInfo, isServerRunning, onCopyLink, copied }) => {
           <div className="text-sm text-muted-foreground space-y-1">
             <p>1. Scan the QR code above, or</p>
             <p>2. Open the copied link in your browser</p>
-            <p>3. Start transferring files!</p>
+            {sessionInfo && (
+              <p className="font-semibold text-green-600">3. Use PIN: <span className="font-mono">{sessionInfo.pin}</span></p>
+            )}
+            <p>4. Start transferring files!</p>
           </div>
         </motion.div>
       </CardContent>
