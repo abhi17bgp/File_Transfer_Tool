@@ -112,12 +112,15 @@ function App() {
         if (ipResponse.ok) {
           const data = await ipResponse.json();
           
-          // Generate frontend URL - always use current origin for deployed frontend
-          let frontendUrl = window.location.origin;
+          // Generate frontend URL - use deployed backend URL for production
+          let frontendUrl;
           
-          // If we're accessing from localhost, use the backend's IP for local development
           if (window.location.hostname === 'localhost' && data.environment === 'development') {
+            // Local development - use backend's IP
             frontendUrl = `http://${data.ip}:3000`;
+          } else {
+            // Production - use deployed backend URL
+            frontendUrl = 'https://file-transfer-tool-2.onrender.com';
           }
           
           // Add the frontend URL to the server info
@@ -193,10 +196,15 @@ function App() {
       
       const sessionData = await sessionResponse.json();
       
-      // Generate frontend URL
-      let frontendUrl = window.location.origin;
+      // Generate frontend URL - use deployed backend URL for production
+      let frontendUrl;
+      
       if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
+        // Local development - use backend's IP
         frontendUrl = `http://${serverData.ip}:3000`;
+      } else {
+        // Production - use deployed backend URL
+        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
       }
       
       // Set server and session info
@@ -273,12 +281,15 @@ function App() {
       const sessionData = await sessionResponse.json();
       console.log('Session data:', sessionData);
       
-      // Generate frontend URL - always use current origin for deployed frontend
-      let frontendUrl = window.location.origin;
+      // Generate frontend URL - use deployed backend URL for production
+      let frontendUrl;
       
-      // If we're accessing from localhost, use the backend's IP for local development
       if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
+        // Local development - use backend's IP
         frontendUrl = `http://${serverData.ip}:3000`;
+      } else {
+        // Production - use deployed backend URL
+        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
       }
       
       // Set server and session info

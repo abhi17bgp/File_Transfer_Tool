@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: file-transfer-backend
+    name: file-transfer-tool-2
     env: node
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
@@ -19,5 +19,5 @@ services:
     staticPublishPath: frontend/build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://file-transfer-backend.onrender.com
+        value: https://file-transfer-tool-2.onrender.com
     plan: free

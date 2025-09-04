@@ -9,6 +9,6 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://file-transfer-tool.onrender.com"
+    "REACT_APP_API_URL": "https://file-transfer-tool-2.onrender.com"
   }
 }
