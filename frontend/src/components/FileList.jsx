@@ -299,7 +299,7 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
             {/* Image */}
             <div className="p-4">
               <img
-                src={`https://file-transfer-tool-2.onrender.com/api/preview/${previewImage.filename}`}
+                src={`https://file-transfer-tool-2.onrender.com/api/download/${previewImage.filename}?token=${previewImage.downloadToken}`}
                 alt={previewImage.originalName}
                 className="max-w-full max-h-96 object-contain mx-auto rounded-lg"
                 onError={(e) => {

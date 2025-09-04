@@ -608,13 +608,29 @@ app.get('/api/files', validateSession, async (req, res) => {
         const filePath = path.join(sessionFolder, filename);
         const stats = fs.statSync(filePath);
         const downloadToken = generateDownloadToken(filename, req.session.sessionId);
+        
+        // Detect mimetype from file extension
+        const ext = path.extname(filename).toLowerCase();
+        let mimetype = 'application/octet-stream';
+        if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
+          mimetype = `image/${ext.slice(1)}`;
+        } else if (['.pdf'].includes(ext)) {
+          mimetype = 'application/pdf';
+        } else if (['.txt'].includes(ext)) {
+          mimetype = 'text/plain';
+        } else if (['.mp4'].includes(ext)) {
+          mimetype = 'video/mp4';
+        } else if (['.mp3'].includes(ext)) {
+          mimetype = 'audio/mpeg';
+        }
+        
         return {
           id: filename,
           filename: filename,
           originalName: filename,
           size: stats.size,
           uploadDate: stats.birthtime,
-          mimetype: 'application/octet-stream',
+          mimetype: mimetype,
           expiresAt: new Date(stats.birthtime.getTime() + SECURITY_CONFIG.FILE_EXPIRY_HOURS * 60 * 60 * 1000),
           downloadToken: downloadToken,
           downloadUrl: `/api/download/${filename}?token=${downloadToken}`
