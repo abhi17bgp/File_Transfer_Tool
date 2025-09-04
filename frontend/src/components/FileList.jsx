@@ -5,6 +5,14 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { useToast } from '../hooks/use-toast';
 
+// Get API base URL (same logic as App.js)
+const getApiBase = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  return 'https://file-transfer-tool-2.onrender.com';
+};
+
 const FileList = ({ files, onDownload, onDelete, isLoading }) => {
   const { toast } = useToast();
   const [isMobile, setIsMobile] = React.useState(false);
@@ -299,7 +307,7 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
             {/* Image */}
             <div className="p-4">
               <img
-                src={`https://file-transfer-tool-2.onrender.com/api/download/${previewImage.filename}?token=${previewImage.downloadToken}`}
+                src={`${getApiBase()}/api/download/${previewImage.filename}?token=${previewImage.downloadToken}`}
                 alt={previewImage.originalName}
                 className="max-w-full max-h-96 object-contain mx-auto rounded-lg"
                 onError={(e) => {

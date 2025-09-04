@@ -9,7 +9,7 @@ import ServerStatus from './components/ServerStatus';
 import FileUpload from './components/FileUpload';
 import FileList from './components/FileList';
 
-// API base URL - use environment variable in production, fallback to localhost for development
+// API base URL - use environment variable in production, fallback to deployed backend
 const getApiBase = () => {
   // Always check environment variable first
   if (process.env.REACT_APP_API_URL) {
@@ -17,16 +17,9 @@ const getApiBase = () => {
     return process.env.REACT_APP_API_URL;
   }
   
-  // // If accessing from localhost, use localhost for backend
-  // if (window.location.hostname === 'localhost') {
-  //   console.log('Using localhost API URL');
-  //   return 'http://localhost:5000';
-  // }
-  
-  // // For external access (like from phone), use the same hostname but port 5000
-  // const externalUrl = `http://${window.location.hostname}:5000`;
-  // console.log('Using external API URL:', externalUrl);
-  // return externalUrl;
+  // Default to deployed backend
+  console.log('Using default deployed API URL');
+  return 'https://file-transfer-tool-2.onrender.com';
 };
 
 const API_BASE = getApiBase();
