@@ -119,7 +119,7 @@ function App() {
             // Production backend - use deployed frontend URL
             // If we're accessing from localhost but backend is production, use deployed frontend
             if (window.location.hostname === 'localhost') {
-              frontendUrl = 'https://file-transfer-frontend.onrender.com'; // Your deployed frontend URL
+              frontendUrl = 'https://file-transfer-tool-c31o.vercel.app'; // Your deployed frontend URL
             } else {
               frontendUrl = window.location.origin; // Use current frontend URL
             }
@@ -128,7 +128,7 @@ function App() {
             frontendUrl = `http://${data.ip}:3000`;
           } else {
             // Fallback - use deployed frontend URL
-            frontendUrl = 'https://file-transfer-frontend.onrender.com';
+            frontendUrl = 'https://file-transfer-tool-c31o.vercel.app';
           }
           
           // Add the frontend URL to the server info
@@ -211,7 +211,7 @@ function App() {
         // Production backend - use deployed frontend URL
         // If we're accessing from localhost but backend is production, use deployed frontend
         if (window.location.hostname === 'localhost') {
-          frontendUrl = 'https://file-transfer-frontend.onrender.com'; // Your deployed frontend URL
+          frontendUrl = 'https://file-transfer-tool-c31o.vercel.app'; // Your deployed frontend URL
         } else {
           frontendUrl = window.location.origin; // Use current frontend URL
         }
@@ -220,7 +220,7 @@ function App() {
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
         // Fallback - use deployed frontend URL
-        frontendUrl = 'https://file-transfer-frontend.onrender.com';
+        frontendUrl = 'https://file-transfer-tool-c31o.vercel.app';
       }
       
       // Set server and session info
@@ -304,7 +304,7 @@ function App() {
         // Production backend - use deployed frontend URL
         // If we're accessing from localhost but backend is production, use deployed frontend
         if (window.location.hostname === 'localhost') {
-          frontendUrl = 'https://file-transfer-frontend.onrender.com'; // Your deployed frontend URL
+          frontendUrl = 'https://file-transfer-tool-c31o.vercel.app'; // Your deployed frontend URL
         } else {
           frontendUrl = window.location.origin; // Use current frontend URL
         }
@@ -313,7 +313,7 @@ function App() {
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
         // Fallback - use deployed frontend URL
-        frontendUrl = 'https://file-transfer-frontend.onrender.com';
+        frontendUrl = 'https://file-transfer-tool-c31o.vercel.app';
       }
       
       // Set server and session info
