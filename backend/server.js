@@ -663,10 +663,17 @@ app.get('/api/files', validateSession, async (req, res) => {
           mimetype = 'audio/mpeg';
         }
         
+        // Try to extract original name from filename if it contains the original name
+        let originalName = filename;
+        const match = filename.match(/^file-\d+-(.+)$/);
+        if (match) {
+          originalName = match[1];
+        }
+        
         return {
           id: filename,
           filename: filename,
-          originalName: filename,
+          originalName: originalName,
           size: stats.size,
           uploadDate: stats.birthtime,
           mimetype: mimetype,
@@ -866,12 +873,58 @@ app.get('/api/download/:filename', async (req, res) => {
       }
     }
     
+    // Fallback: detect mimetype from file extension if not set
+    if (mimetype === 'application/octet-stream') {
+      const ext = path.extname(filename).toLowerCase();
+      if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
+        mimetype = `image/${ext.slice(1)}`;
+      } else if (['.pdf'].includes(ext)) {
+        mimetype = 'application/pdf';
+      } else if (['.txt'].includes(ext)) {
+        mimetype = 'text/plain';
+      } else if (['.mp4'].includes(ext)) {
+        mimetype = 'video/mp4';
+      } else if (['.mp3'].includes(ext)) {
+        mimetype = 'audio/mpeg';
+      } else if (['.zip'].includes(ext)) {
+        mimetype = 'application/zip';
+      } else if (['.doc'].includes(ext)) {
+        mimetype = 'application/msword';
+      } else if (['.docx'].includes(ext)) {
+        mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      } else if (['.xls'].includes(ext)) {
+        mimetype = 'application/vnd.ms-excel';
+      } else if (['.xlsx'].includes(ext)) {
+        mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      } else if (['.ppt'].includes(ext)) {
+        mimetype = 'application/vnd.ms-powerpoint';
+      } else if (['.pptx'].includes(ext)) {
+        mimetype = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      }
+    }
+    
+    // Fallback: try to extract original name from filename if it contains the original name
+    if (originalName === filename) {
+      // If filename contains a pattern like "file-timestamp-originalname", try to extract it
+      const match = filename.match(/^file-\d+-(.+)$/);
+      if (match) {
+        originalName = match[1];
+      }
+    }
+    
     // Increment download count in token
     tokenData.downloadCount++;
     downloadTokens.set(token, tokenData);
     saveDownloadTokens();
 
     // Set appropriate headers for file download
+    console.log('Download headers:', {
+      filename: filename,
+      originalName: originalName,
+      mimetype: mimetype,
+      filePath: filePath
+    });
+    
     res.setHeader('Content-Disposition', `attachment; filename="${originalName}"`);
     res.setHeader('Content-Type', mimetype);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
