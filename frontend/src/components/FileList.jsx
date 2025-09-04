@@ -107,12 +107,13 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold">Uploaded Files</h3>
-          <span className="text-sm text-muted-foreground">{files.length} file(s)</span>
-        </div>
+    <>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold">Uploaded Files</h3>
+            <span className="text-sm text-muted-foreground">{files.length} file(s)</span>
+          </div>
         
         <div className="space-y-3">
           <AnimatePresence>
@@ -336,6 +337,7 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
         </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 };
 
