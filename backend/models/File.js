@@ -31,6 +31,14 @@ const fileSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  cloudinaryPublicId: {
+    type: String,
+    required: false
+  },
+  cloudinaryUrl: {
+    type: String,
+    required: false
+  },
   sessionId: {
     type: String,
     required: true,

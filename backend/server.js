@@ -7,6 +7,8 @@ const fs = require('fs');
 const os = require('os');
 const cron = require('node-cron');
 const crypto = require('crypto');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const connectDB = require('./config/database');
 const File = require('./models/File');
 const Session = require('./models/Session');
@@ -26,6 +28,19 @@ connectDB().then(conn => {
   }
 }).catch(err => {
   console.log('⚠️  Database connection failed, running in fallback mode');
+});
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+console.log('☁️  Cloudinary configured:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'Set' : 'Not set',
+  api_key: process.env.CLOUDINARY_API_KEY ? 'Set' : 'Not set',
+  api_secret: process.env.CLOUDINARY_API_SECRET ? 'Set' : 'Not set'
 });
 
 // Middleware
@@ -312,25 +327,21 @@ const validateSession = async (req, res, next) => {
   }
 };
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Use session folder if available, otherwise use main uploads folder
-    const sessionId = req.headers.sessionid;
-    const destination = sessionId ? path.join(uploadsDir, sessionId) : uploadsDir;
-    
-    // Ensure directory exists
-    if (!fs.existsSync(destination)) {
-      fs.mkdirSync(destination, { recursive: true });
+// Configure Cloudinary storage for file uploads
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'file-transfer-tool', // Folder in Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'txt', 'mp4', 'mp3', 'zip'],
+    transformation: [{ width: 1000, height: 1000, crop: 'limit' }], // Optional: resize images
+    resource_type: 'auto', // Automatically detect resource type
+    public_id: (req, file) => {
+      // Generate unique filename with session ID and timestamp
+      const sessionId = req.headers.sessionid || 'default';
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const originalName = file.originalname.replace(/\.[^/.]+$/, ""); // Remove extension
+      return `${sessionId}/${originalName}-${uniqueSuffix}`;
     }
-    
-    cb(null, destination);
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const filename = file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname);
-    cb(null, filename);
   }
 });
 
@@ -546,9 +557,13 @@ app.post('/api/upload', validateSession, upload.single('file'), async (req, res)
 
     // Security checks
     if (req.file.size > SECURITY_CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024) {
-      // Clean up uploaded file
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      // Clean up uploaded file from Cloudinary
+      if (req.file.public_id) {
+        try {
+          await cloudinary.uploader.destroy(req.file.public_id);
+        } catch (error) {
+          console.error('Error deleting file from Cloudinary:', error);
+        }
       }
       return res.status(400).json({
         success: false,
@@ -563,9 +578,13 @@ app.post('/api/upload', validateSession, upload.single('file'), async (req, res)
       });
       
       if (sessionFileCount >= SECURITY_CONFIG.MAX_FILES_PER_SESSION) {
-        // Clean up uploaded file
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
+        // Clean up uploaded file from Cloudinary
+        if (req.file.public_id) {
+          try {
+            await cloudinary.uploader.destroy(req.file.public_id);
+          } catch (error) {
+            console.error('Error deleting file from Cloudinary:', error);
+          }
         }
         return res.status(400).json({
           success: false,
@@ -578,11 +597,13 @@ app.post('/api/upload', validateSession, upload.single('file'), async (req, res)
     let fileRecord = null;
     if (dbConnected) {
       fileRecord = new File({
-        filename: req.file.filename,
+        filename: req.file.public_id, // Use Cloudinary public_id as filename
         originalName: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype,
-        filePath: req.file.path,
+        filePath: req.file.secure_url, // Use Cloudinary secure URL
+        cloudinaryPublicId: req.file.public_id, // Store Cloudinary public ID
+        cloudinaryUrl: req.file.secure_url, // Store Cloudinary URL
         sessionId: req.session.sessionId,
         sessionPin: req.session.pin,
         uploadDate: new Date(),
@@ -830,47 +851,50 @@ app.get('/api/download/:filename', async (req, res) => {
       });
     }
     
-    // Find file path (check session folder first, then main uploads)
-    let filePath = path.join(uploadsDir, tokenData.sessionId, filename);
-    if (!fs.existsSync(filePath)) {
-      filePath = path.join(uploadsDir, filename);
+    // Get file information from database or fallback
+    let fileRecord = null;
+    let cloudinaryUrl = null;
+    
+    // If database is connected, try to get file info
+    if (dbConnected) {
+      try {
+        fileRecord = await File.findOne({ filename });
+        if (fileRecord && fileRecord.cloudinaryUrl) {
+          cloudinaryUrl = fileRecord.cloudinaryUrl;
+        }
+      } catch (dbError) {
+        console.log('Database lookup failed:', dbError);
+      }
     }
     
-    // Check if file exists on disk
-    if (!fs.existsSync(filePath)) {
+    // If no Cloudinary URL found, return error
+    if (!cloudinaryUrl) {
       return res.status(404).json({
         success: false,
-        error: 'File not found on disk'
+        error: 'File not found in cloud storage'
       });
     }
 
     let originalName = filename;
     let mimetype = 'application/octet-stream';
 
-    // If database is connected, try to get file metadata
-    if (dbConnected) {
-      try {
-        const fileRecord = await File.findOne({ filename });
-        if (fileRecord) {
-          originalName = fileRecord.originalName;
-          mimetype = fileRecord.mimetype;
-          
-          // Check if file has expired
-          if (fileRecord.expiresAt && new Date() > fileRecord.expiresAt) {
-            return res.status(410).json({
-              success: false,
-              error: 'File has expired'
-            });
-          }
-          
-          // Update download count
-          await File.findByIdAndUpdate(fileRecord._id, {
-            $inc: { downloadCount: 1 }
-          });
-        }
-      } catch (dbError) {
-        console.log('Database lookup failed, using fallback metadata');
+    // Use file metadata from database if available
+    if (fileRecord) {
+      originalName = fileRecord.originalName;
+      mimetype = fileRecord.mimetype;
+      
+      // Check if file has expired
+      if (fileRecord.expiresAt && new Date() > fileRecord.expiresAt) {
+        return res.status(410).json({
+          success: false,
+          error: 'File has expired'
+        });
       }
+      
+      // Update download count
+      await File.findByIdAndUpdate(fileRecord._id, {
+        $inc: { downloadCount: 1 }
+      });
     }
     
     // Fallback: detect mimetype from file extension if not set
@@ -922,26 +946,11 @@ app.get('/api/download/:filename', async (req, res) => {
       filename: filename,
       originalName: originalName,
       mimetype: mimetype,
-      filePath: filePath
+      cloudinaryUrl: cloudinaryUrl
     });
     
-    res.setHeader('Content-Disposition', `attachment; filename="${originalName}"`);
-    res.setHeader('Content-Type', mimetype);
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    fileStream.on('error', (error) => {
-      console.error('Download error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to download file'
-      });
-    });
+    // Redirect to Cloudinary URL for download
+    res.redirect(302, cloudinaryUrl);
     
     console.log(`📥 File downloaded: ${filename} (${tokenData.downloadCount}/${tokenData.maxDownloads})`);
   } catch (error) {
@@ -978,48 +987,36 @@ app.delete('/api/files/:id', validateSession, async (req, res) => {
           }
           
           filename = fileRecord.filename;
-          // Check session folder first, then main uploads folder
-          filePath = path.join(uploadsDir, req.session.sessionId, filename);
-          if (!fs.existsSync(filePath)) {
-            filePath = path.join(uploadsDir, filename);
-          }
         } else {
-          // File not found in database, try fallback mode
-          console.log('File not found in database, trying fallback mode');
-          filePath = path.join(uploadsDir, req.session.sessionId, fileId);
-          if (!fs.existsSync(filePath)) {
-            filePath = path.join(uploadsDir, fileId);
-          }
+          return res.status(404).json({
+            success: false,
+            error: 'File not found in database'
+          });
         }
       } catch (dbError) {
-        console.log('Database lookup failed, using fallback mode:', dbError);
-        // Fallback mode - check session folder
-        filePath = path.join(uploadsDir, req.session.sessionId, fileId);
-        if (!fs.existsSync(filePath)) {
-          filePath = path.join(uploadsDir, fileId);
-        }
+        console.log('Database lookup failed:', dbError);
+        return res.status(500).json({
+          success: false,
+          error: 'Database lookup failed'
+        });
       }
     } else {
-      // Fallback mode - check session folder
-      filePath = path.join(uploadsDir, req.session.sessionId, fileId);
-      if (!fs.existsSync(filePath)) {
-        filePath = path.join(uploadsDir, fileId);
-      }
-    }
-
-    // Check if file exists on disk
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
+      return res.status(500).json({
         success: false,
-        error: 'File not found on disk'
+        error: 'Database not connected - cannot delete files'
       });
     }
 
-    console.log('Deleting file:', filePath);
-
-    // Delete file from disk
-    fs.unlinkSync(filePath);
-    console.log('File deleted from disk successfully');
+    // Delete file from Cloudinary
+    if (fileRecord && fileRecord.cloudinaryPublicId) {
+      try {
+        await cloudinary.uploader.destroy(fileRecord.cloudinaryPublicId);
+        console.log('File deleted from Cloudinary successfully');
+      } catch (cloudinaryError) {
+        console.error('Error deleting file from Cloudinary:', cloudinaryError);
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
 
     // Delete from database if connected
     if (dbConnected && fileRecord) {
