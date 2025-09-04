@@ -659,6 +659,83 @@ app.get('/api/files', validateSession, async (req, res) => {
   }
 });
 
+// Image preview endpoint (no token required for preview)
+app.get('/api/preview/:filename', async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    
+    // Find file path (check session folders first, then main uploads)
+    let filePath = null;
+    
+    // Try to find the file in any session folder
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      const sessionFolders = fs.readdirSync(uploadsDir).filter(item => {
+        const itemPath = path.join(uploadsDir, item);
+        return fs.statSync(itemPath).isDirectory() && item.startsWith('sess_');
+      });
+      
+      for (const sessionFolder of sessionFolders) {
+        const sessionPath = path.join(uploadsDir, sessionFolder, filename);
+        if (fs.existsSync(sessionPath)) {
+          filePath = sessionPath;
+          break;
+        }
+      }
+      
+      // If not found in session folders, check main uploads
+      if (!filePath) {
+        const mainPath = path.join(uploadsDir, filename);
+        if (fs.existsSync(mainPath)) {
+          filePath = mainPath;
+        }
+      }
+    }
+    
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+    
+    // Check if it's an image file
+    const ext = path.extname(filename).toLowerCase();
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
+    
+    if (!imageExtensions.includes(ext)) {
+      return res.status(400).json({
+        success: false,
+        error: 'File is not an image'
+      });
+    }
+    
+    // Set appropriate headers for image display
+    const mimetype = `image/${ext.slice(1)}`;
+    res.setHeader('Content-Type', mimetype);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    
+    // Stream the image
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+    fileStream.on('error', (error) => {
+      console.error('Preview error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to load image preview'
+      });
+    });
+    
+  } catch (error) {
+    console.error('Preview error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to load image preview'
+    });
+  }
+});
+
 // Download file endpoint with secure token validation
 app.get('/api/download/:filename', async (req, res) => {
   try {
