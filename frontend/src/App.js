@@ -112,18 +112,18 @@ function App() {
         if (ipResponse.ok) {
           const data = await ipResponse.json();
           
-          // Generate frontend URL - use deployed backend URL for production
+          // Generate frontend URL for QR code - always use frontend URL, not backend
           let frontendUrl;
           
           if (data.environment === 'production') {
-            // Production - use deployed backend URL
-            frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+            // Production - use deployed frontend URL (not backend)
+            frontendUrl = window.location.origin; // Use current frontend URL
           } else if (window.location.hostname === 'localhost' && data.environment === 'development') {
-            // Local development - use backend's IP
+            // Local development - use backend's IP for frontend
             frontendUrl = `http://${data.ip}:3000`;
           } else {
-            // Fallback - use deployed backend URL
-            frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+            // Fallback - use current frontend URL
+            frontendUrl = window.location.origin;
           }
           
           // Add the frontend URL to the server info
@@ -203,14 +203,14 @@ function App() {
       let frontendUrl;
       
       if (serverData.environment === 'production') {
-        // Production - use deployed backend URL
-        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+        // Production - use deployed frontend URL (not backend)
+        frontendUrl = window.location.origin; // Use current frontend URL
       } else if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
-        // Local development - use backend's IP
+        // Local development - use backend's IP for frontend
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
-        // Fallback - use deployed backend URL
-        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+        // Fallback - use current frontend URL
+        frontendUrl = window.location.origin;
       }
       
       // Set server and session info
@@ -291,14 +291,14 @@ function App() {
       let frontendUrl;
       
       if (serverData.environment === 'production') {
-        // Production - use deployed backend URL
-        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+        // Production - use deployed frontend URL (not backend)
+        frontendUrl = window.location.origin; // Use current frontend URL
       } else if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
-        // Local development - use backend's IP
+        // Local development - use backend's IP for frontend
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
-        // Fallback - use deployed backend URL
-        frontendUrl = 'https://file-transfer-tool-2.onrender.com';
+        // Fallback - use current frontend URL
+        frontendUrl = window.location.origin;
       }
       
       // Set server and session info
@@ -430,7 +430,7 @@ function App() {
     }
   };
 
-  const handleDownload = async (filename) => {
+  const handleDownload = async (file) => {
     if (!sessionInfo) {
       toast({
         title: "No Session",
@@ -441,15 +441,16 @@ function App() {
     }
     
     try {
-      const response = await fetch(`${API_BASE}/api/download/${filename}`, {
-        headers: getSessionHeaders(sessionInfo)
-      });
+      // Use the secure download URL with token
+      const downloadUrl = file.downloadUrl || `${API_BASE}/api/download/${file.filename}?token=${file.downloadToken}`;
+      const response = await fetch(downloadUrl);
+      
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename;
+        a.download = file.originalName || file.filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -457,11 +458,12 @@ function App() {
 
         toast({
           title: "📥 Download Started",
-          description: `${filename} is being downloaded`,
+          description: `${file.originalName || file.filename} is being downloaded`,
           duration: 3000,
         });
       } else {
-        throw new Error('Failed to download file');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to download file');
       }
     } catch (error) {
       toast({

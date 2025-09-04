@@ -134,7 +134,7 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => onDownload(file.filename)}
+                            onClick={() => onDownload(file)}
                             className="flex-1"
                           >
                             <Download className="h-4 w-4 mr-2" />
@@ -182,7 +182,7 @@ const FileList = ({ files, onDownload, onDelete, isLoading }) => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => onDownload(file.filename)}
+                            onClick={() => onDownload(file)}
                             className="flex items-center"
                           >
                             <Download className="h-4 w-4 mr-1" />
