@@ -112,18 +112,23 @@ function App() {
         if (ipResponse.ok) {
           const data = await ipResponse.json();
           
-          // Generate frontend URL for QR code - always use frontend URL, not backend
+          // Generate frontend URL for QR code
           let frontendUrl;
           
           if (data.environment === 'production') {
-            // Production - use deployed frontend URL (not backend)
-            frontendUrl = window.location.origin; // Use current frontend URL
+            // Production backend - use deployed frontend URL
+            // If we're accessing from localhost but backend is production, use deployed frontend
+            if (window.location.hostname === 'localhost') {
+              frontendUrl = 'https://file-transfer-frontend.onrender.com'; // Your deployed frontend URL
+            } else {
+              frontendUrl = window.location.origin; // Use current frontend URL
+            }
           } else if (window.location.hostname === 'localhost' && data.environment === 'development') {
             // Local development - use backend's IP for frontend
             frontendUrl = `http://${data.ip}:3000`;
           } else {
-            // Fallback - use current frontend URL
-            frontendUrl = window.location.origin;
+            // Fallback - use deployed frontend URL
+            frontendUrl = 'https://file-transfer-frontend.onrender.com';
           }
           
           // Add the frontend URL to the server info
@@ -203,14 +208,19 @@ function App() {
       let frontendUrl;
       
       if (serverData.environment === 'production') {
-        // Production - use deployed frontend URL (not backend)
-        frontendUrl = window.location.origin; // Use current frontend URL
+        // Production backend - use deployed frontend URL
+        // If we're accessing from localhost but backend is production, use deployed frontend
+        if (window.location.hostname === 'localhost') {
+          frontendUrl = 'https://file-transfer-frontend.onrender.com'; // Your deployed frontend URL
+        } else {
+          frontendUrl = window.location.origin; // Use current frontend URL
+        }
       } else if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
         // Local development - use backend's IP for frontend
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
-        // Fallback - use current frontend URL
-        frontendUrl = window.location.origin;
+        // Fallback - use deployed frontend URL
+        frontendUrl = 'https://file-transfer-frontend.onrender.com';
       }
       
       // Set server and session info
@@ -291,14 +301,19 @@ function App() {
       let frontendUrl;
       
       if (serverData.environment === 'production') {
-        // Production - use deployed frontend URL (not backend)
-        frontendUrl = window.location.origin; // Use current frontend URL
+        // Production backend - use deployed frontend URL
+        // If we're accessing from localhost but backend is production, use deployed frontend
+        if (window.location.hostname === 'localhost') {
+          frontendUrl = 'https://file-transfer-frontend.onrender.com'; // Your deployed frontend URL
+        } else {
+          frontendUrl = window.location.origin; // Use current frontend URL
+        }
       } else if (window.location.hostname === 'localhost' && serverData.environment === 'development') {
         // Local development - use backend's IP for frontend
         frontendUrl = `http://${serverData.ip}:3000`;
       } else {
-        // Fallback - use current frontend URL
-        frontendUrl = window.location.origin;
+        // Fallback - use deployed frontend URL
+        frontendUrl = 'https://file-transfer-frontend.onrender.com';
       }
       
       // Set server and session info
