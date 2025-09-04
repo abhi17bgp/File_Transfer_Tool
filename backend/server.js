@@ -435,8 +435,18 @@ app.post('/api/session/create', async (req, res) => {
 app.get('/api/ip', (req, res) => {
   try {
     console.log('IP endpoint called');
-    // Check if we're in production (deployed)
-    if (process.env.NODE_ENV === 'production') {
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('RENDER:', process.env.RENDER);
+    console.log('Host:', req.get('host'));
+    
+    // Check if we're in production (deployed) - check multiple indicators
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        process.env.RENDER === 'true' || 
+                        req.get('host')?.includes('onrender.com');
+    
+    console.log('Is Production:', isProduction);
+    
+    if (isProduction) {
       res.json({
         success: true,
         ip: 'file-transfer-tool-2.onrender.com',
