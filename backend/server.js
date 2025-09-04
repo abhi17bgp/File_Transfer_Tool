@@ -62,8 +62,37 @@ const SECURITY_CONFIG = {
   MAX_FILES_PER_SESSION: 50
 };
 
-// Store for download tokens (in production, use Redis or database)
-const downloadTokens = new Map();
+// Store for download tokens (file-based for persistence)
+const downloadTokensFile = path.join(__dirname, 'download-tokens.json');
+let downloadTokens = new Map();
+
+// Load download tokens from file
+const loadDownloadTokens = () => {
+  try {
+    if (fs.existsSync(downloadTokensFile)) {
+      const data = fs.readFileSync(downloadTokensFile, 'utf8');
+      const tokens = JSON.parse(data);
+      downloadTokens = new Map(Object.entries(tokens));
+      console.log(`Loaded ${downloadTokens.size} download tokens from file`);
+    }
+  } catch (error) {
+    console.error('Error loading download tokens:', error);
+    downloadTokens = new Map();
+  }
+};
+
+// Save download tokens to file
+const saveDownloadTokens = () => {
+  try {
+    const tokens = Object.fromEntries(downloadTokens);
+    fs.writeFileSync(downloadTokensFile, JSON.stringify(tokens, null, 2));
+  } catch (error) {
+    console.error('Error saving download tokens:', error);
+  }
+};
+
+// Load tokens on startup
+loadDownloadTokens();
 
 // Cleanup Functions
 const cleanupExpiredFiles = async () => {
@@ -143,6 +172,11 @@ const cleanupDownloadTokens = () => {
     }
   }
   
+  // Save tokens after cleanup
+  if (cleanedCount > 0) {
+    saveDownloadTokens();
+  }
+  
   if (cleanedCount > 0) {
     console.log(`🧹 Cleaned up ${cleanedCount} expired download tokens`);
   }
@@ -161,6 +195,9 @@ const generateDownloadToken = (filename, sessionId) => {
     maxDownloads: SECURITY_CONFIG.MAX_DOWNLOADS_PER_FILE
   });
   
+  // Save tokens to file
+  saveDownloadTokens();
+  
   return token;
 };
 
@@ -174,11 +211,13 @@ const validateDownloadToken = (token) => {
   
   if (Date.now() > tokenData.expiresAt) {
     downloadTokens.delete(token);
+    saveDownloadTokens();
     return { valid: false, error: 'Download token has expired' };
   }
   
   if (tokenData.downloadCount >= tokenData.maxDownloads) {
     downloadTokens.delete(token);
+    saveDownloadTokens();
     return { valid: false, error: 'Maximum downloads exceeded' };
   }
   
@@ -830,6 +869,7 @@ app.get('/api/download/:filename', async (req, res) => {
     // Increment download count in token
     tokenData.downloadCount++;
     downloadTokens.set(token, tokenData);
+    saveDownloadTokens();
 
     // Set appropriate headers for file download
     res.setHeader('Content-Disposition', `attachment; filename="${originalName}"`);
