@@ -931,17 +931,20 @@ app.delete('/api/files/:id', validateSession, async (req, res) => {
             filePath = path.join(uploadsDir, filename);
           }
         } else {
-          return res.status(404).json({
-            success: false,
-            error: 'File not found in database'
-          });
+          // File not found in database, try fallback mode
+          console.log('File not found in database, trying fallback mode');
+          filePath = path.join(uploadsDir, req.session.sessionId, fileId);
+          if (!fs.existsSync(filePath)) {
+            filePath = path.join(uploadsDir, fileId);
+          }
         }
       } catch (dbError) {
-        console.log('Database lookup failed:', dbError);
-        return res.status(500).json({
-          success: false,
-          error: 'Database lookup failed'
-        });
+        console.log('Database lookup failed, using fallback mode:', dbError);
+        // Fallback mode - check session folder
+        filePath = path.join(uploadsDir, req.session.sessionId, fileId);
+        if (!fs.existsSync(filePath)) {
+          filePath = path.join(uploadsDir, fileId);
+        }
       }
     } else {
       // Fallback mode - check session folder
