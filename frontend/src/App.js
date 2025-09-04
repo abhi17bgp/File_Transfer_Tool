@@ -17,16 +17,16 @@ const getApiBase = () => {
     return process.env.REACT_APP_API_URL;
   }
   
-  // If accessing from localhost, use localhost for backend
-  if (window.location.hostname === 'localhost') {
-    console.log('Using localhost API URL');
-    return 'http://localhost:5000';
-  }
+  // // If accessing from localhost, use localhost for backend
+  // if (window.location.hostname === 'localhost') {
+  //   console.log('Using localhost API URL');
+  //   return 'http://localhost:5000';
+  // }
   
-  // For external access (like from phone), use the same hostname but port 5000
-  const externalUrl = `http://${window.location.hostname}:5000`;
-  console.log('Using external API URL:', externalUrl);
-  return externalUrl;
+  // // For external access (like from phone), use the same hostname but port 5000
+  // const externalUrl = `http://${window.location.hostname}:5000`;
+  // console.log('Using external API URL:', externalUrl);
+  // return externalUrl;
 };
 
 const API_BASE = getApiBase();
